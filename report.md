@@ -1,40 +1,31 @@
 ---
-title: Homework 1 -- Your Title Here
-author: John Doe
+title: Multiple Object Video Detection
+author: Yaryna Zabchuk and Yurii Fito
 course: Artificial Intelligence · UCU
-date: 2026-10-12
+date: 2026-11-16
 ---
 
 ## Introduction
 
-Write your report here using regular **Markdown**. This text is an example — replace it.
+We study object detection in drone video frames from the UCU AI 2026 competition. The dataset contains eight target classes and many small, partially occluded objects. Our goal is to compare detector families under a common validation protocol and develop an inference pipeline that improves detection of small objects without changing the evaluation data.
 
-## Method
+## Data Understanding and Preprocessing
 
-Inline math works with single dollars: $f(x) = \sigma(Wx + b)$. Display math uses double dollars:
+We retained the supplied split by video sequence to avoid leakage from near-duplicate frames. It contains 56 train clips and 7 validation clips with no shared clip names; one high-resolution clip contributes 34% of validation frames.
 
-$$
-\mathcal{L}(\theta) = -\frac{1}{N}\sum_{i=1}^{N} y_i \log \hat{y}_i
-$$
+| Split | Clips | Frames | Objects | Ignored regions |
+|---|---:|---:|---:|---:|
+| Train | 56 | 24,201 | 1,105,516 | 63,843 |
+| Validation | 7 | 2,846 | 114,132 | 3,995 |
 
-Code blocks are highlighted:
+COCO annotations with `iscrowd = 0` were used as targets; `iscrowd = 1` boxes were ignored. A check on 400 sampled frames matched YOLO and COCO boxes by class and geometry. Object size was measured as $\sqrt{wh}$: the median was 46.4 pixels and 24% of objects were COCO-small. Person and car dominated the data, while bus represented less than 1%.
 
-```python
-def accuracy(y_true, y_pred):
-    return (y_true == y_pred).mean()
-```
+![Class distribution](images/eda_class_distribution.png)
 
-## Results
+Scene density varied from 5 to 143 objects per frame, with a maximum close to 180, so evaluation used `maxDets = 300`. Ignored regions occurred in 72% of frames but covered only 2.3% of image area on average. They were mean-colour masked during training and preserved for COCO evaluation. Since 47% of objects were partly occluded, Soft-NMS was also tested.
 
-| Model    | Accuracy | F1   |
-|----------|----------|------|
-| Baseline | 0.71     | 0.68 |
-| Ours     | 0.84     | 0.82 |
+![Object size distribution](images/eda_object_sizes.png)
 
-Images go into the `images/` folder:
+![Objects per frame](images/eda_objects_per_frame.png)
 
-<!-- ![Training loss](images/loss.png) -->
-
-## Conclusion
-
-> Summarize your findings here.
+At a 640-pixel long side, more than half of objects were below 16 pixels. We therefore used 1280, mild scale/colour/blur augmentation, and no validation augmentation. K-means box sizes at input 1024 spanned roughly 7--100 pixels, motivating smaller anchors, a stride-4 head and tiled inference. Main experiments used every fifth frame; temporal experiments used all validation frames.
