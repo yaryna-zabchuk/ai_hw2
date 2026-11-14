@@ -28,4 +28,38 @@ Scene density varied from 5 to 143 objects per frame, with a maximum close to 18
 
 ![Objects per frame](images/eda_objects_per_frame.png)
 
-At a 640-pixel long side, more than half of objects were below 16 pixels. We therefore used 1280, mild scale/colour/blur augmentation, and no validation augmentation. K-means box sizes at input 1024 spanned roughly 7--100 pixels, motivating smaller anchors, a stride-4 head and tiled inference. Main experiments used every fifth frame; temporal experiments used all validation frames.
+At a 640-pixel long side, more than half of objects were below 16 pixels. We therefore used 1280, mild scale/colour/blur augmentation, and no validation augmentation. K-means box sizes at input 1024 spanned roughly 7-100 pixels, motivating smaller anchors, a stride-4 head and tiled inference. Main experiments used every fifth frame; temporal experiments used all validation frames.
+
+## Faster R-CNN
+
+**Protocol.** We used COCO-pretrained Faster R-CNN with a ResNet-50 FPN for six epochs (batch size 4, SGD with OneCycle scheduling, 1280-pixel inputs). Smaller dataset-derived anchors and a 300-box limit addressed small and crowded scenes.
+
+**Result.**
+
+| mAP | AP50 | AP_small | FPS |
+|---:|---:|---:|---:|
+| 0.2023 | 0.4271 | 0.1019 | 5.74 |
+
+Increasing RPN proposals from 500 to 2,000 changed mAP only from 0.2000 to 0.2026 while reducing speed. GIoU box loss also failed to improve mAP (0.2009 versus 0.2023), so we retained the baseline.
+
+The RPN first filters the image into candidate regions, while the RoI head classifies and refines them. This helps suppress background in crowded frames. However, the limited gain from extra proposals shows that proposal recall was not the only bottleneck; small-object features and precise localization remained difficult.
+
+**Errors.** Tiny objects were often missed, dense scenes produced localization errors, and visually similar classes caused misclassification. These findings motivated later high-resolution and tiled inference.
+
+## RetinaNet
+
+**Protocol.** RetinaNet used the same pretrained backbone, data split, six-epoch budget and COCO evaluation as Faster R-CNN. This made the comparison between two-stage and one-stage anchor-based detectors more controlled.
+
+**Result.**
+
+| mAP | AP50 | AP_small | FPS |
+|---:|---:|---:|---:|
+| 0.1360 | 0.2681 | 0.0508 | 5.36 |
+
+Dataset-derived smaller anchors reduced mAP to 0.0975, while a focal-loss variant reached 0.1037.
+
+Unlike Faster R-CNN, RetinaNet predicts classes and box offsets densely at every feature-map location without a proposal filter. This creates many easy background examples in dense scenes. Focal loss was intended to reduce this imbalance, but remained below the default configuration.
+
+**Conclusion.** Neither anchor matching nor the tested loss change solved the dense foreground/background assignment problem. The low AP_small and crowded-scene errors suggest that removing the proposal stage is costly for this dataset.
+
+The comparison also separates accuracy from efficiency. Faster R-CNN was substantially more accurate, especially on small objects, although both models had similar inference speed in this setup. RetinaNet's lower AP50 and AP_small indicate that its weakness was not only inaccurate box boundaries, but also missed detections. These baselines establish the reference point for testing anchor-free and query-based designs.
