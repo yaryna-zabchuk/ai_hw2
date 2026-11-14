@@ -62,4 +62,31 @@ Unlike Faster R-CNN, RetinaNet predicts classes and box offsets densely at every
 
 **Conclusion.** Neither anchor matching nor the tested loss change solved the dense foreground/background assignment problem. The low AP_small and crowded-scene errors suggest that removing the proposal stage is costly for this dataset.
 
-The comparison also separates accuracy from efficiency. Faster R-CNN was substantially more accurate, especially on small objects, although both models had similar inference speed in this setup. RetinaNet's lower AP50 and AP_small indicate that its weakness was not only inaccurate box boundaries, but also missed detections. These baselines establish the reference point for testing anchor-free and query-based designs.
+## YOLOv8: One-stage Anchor-free Detector
+
+**Protocol.** We trained YOLOv8m for six epochs with the same 1280-pixel inputs, sampled frames, batch size and COCO evaluation. The model is anchor-free: feature-map locations predict class scores and distances to box sides, followed by NMS. We tested an extra stride-4 P2 head for small objects and a blended Normalized Wasserstein Distance (NWD) box loss.
+
+**Results.**
+
+| Variant | mAP | AP50 | AP_small | FPS |
+|---|---:|---:|---:|---:|
+| YOLOv8 baseline | 0.1996 | 0.3795 | 0.1148 | 19.69 |
+| YOLOv8 + P2 head | 0.1966 | 0.3872 | 0.1413 | 14.73 |
+| YOLOv8 + NWD | 0.1813 | 0.3590 | 0.1333 | 10.50 |
+
+The P2 head slightly reduced overall mAP but improved AP_small from 0.1148 to 0.1413, confirming its value for tiny objects at a speed cost. NWD also improved small-object AP relative to the baseline, but hurt overall detection. Its weaker mAP suggests that tolerance to small localization shifts can reduce precision on medium and large objects. YOLOv8 was the fastest detector, but RT-DETR was more accurate under the same short training budget.
+
+## RT-DETR: Query-based Detector
+
+**Protocol.** RT-DETR-L was trained for six epochs with AdamW, the same sampled frames and input resolution, and COCO evaluation. Unlike dense CNN detectors, it predicts a fixed set of object queries. Hungarian bipartite matching assigns predictions to ground truth during training, so inference does not require the same class-wise NMS stage.
+
+**Results.**
+
+| Variant | mAP | AP50 | AP_small | FPS |
+|---|---:|---:|---:|---:|
+| RT-DETR baseline | 0.2422 | 0.4579 | 0.1214 | 7.31 |
+| RT-DETR, 500 queries | **0.2508** | **0.4801** | **0.1393** | 4.97 |
+| RT-DETR, higher box costs | 0.2136 | 0.4337 | 0.1266 | 4.97 |
+
+Increasing the query budget from 300 to 500 improved all accuracy metrics, especially AP50, but reduced throughput. Increasing box and GIoU weights in the matching cost instead hurt convergence within the six-epoch budget. RT-DETR gave the best single-model mAP and handled crowded scenes without duplicate suppression, but its lower FPS motivated using it selectively in the final inference pipeline.
+
