@@ -106,3 +106,27 @@ We selected the full + flip + tiles configuration with WBF max score. Soft-NMS h
 
 **Ensemble and tile fine-tuning.** We added another model only when it improved validation mAP by at least 0.001. The selected ensemble was `rtdetr_q500 + yolo_base + rtdetr_base`. It reached mAP 0.2915 and AP_small 0.2070. We then fine-tuned `rtdetr_q500` for two more epochs on randomly selected training tiles with a lower learning rate of $5\times10^{-5}$. Using this model only for the tile predictions raised the ensemble to mAP **0.2930** and AP_small **0.2075**. This was our final submission pipeline.
 
+## Summary of All Models
+
+All rows use the same 571 validation frames (every 5th frame in 7 clips 2826/571~=571) and COCO evaluation. Anchor-based models were scored by AP_medium and AP_large (objects of size >= 32*32px).
+
+| Model | mAP | AP_small | AP_medium | AP_large | Public LB |
+|---|---:|---:|---:|---:|---:|
+| Faster R-CNN | 0.2022 | 0.1024 | 0.1825 | 0.3778 | 0.2153 |
+| Faster R-CNN, GIoU loss | 0.2013 | 0.1021 | 0.1823 | 0.3747 | - |
+| RetinaNet, default anchors | 0.1360 | 0.0509 | 0.1165 | 0.2812 | - |
+| RetinaNet, small anchors | 0.0973 | 0.0481 | 0.0875 | 0.1991 | - |
+| RetinaNet, small anchors, $\gamma = 1.5$ | 0.1037 | 0.0475 | 0.0958 | 0.2071 | - |
+| YOLOv8m | 0.1996 | 0.1148 | 0.1840 | 0.3303 | 0.2414 |
+| YOLOv8m + P2 head | 0.1966 | 0.1413 | 0.1834 | 0.3433 | - |
+| YOLOv8m + NWD loss | 0.1813 | 0.1333 | 0.1778 | 0.2934 | - |
+| RT-DETR-L | 0.2422 | 0.1214 | 0.2111 | 0.4167 | - |
+| RT-DETR-L, 500 queries | 0.2508 | 0.1393 | 0.2332 | 0.4028 | 0.2950 |
+| RT-DETR-L, higher box costs | 0.2136 | 0.1266 | 0.2072 | 0.3606 | - |
+| RT-DETR-L 500q, full + flip + tiles | 0.2651 | 0.1526 | 0.2600 | 0.4151 | - |
+| Same, tiles from fine-tuned copy | 0.2716 | 0.1416 | 0.2537 | 0.4375 | - |
+| Ensemble of 3 models | 0.2915 | 0.2070 | 0.2658 | 0.4713 | 0.3000 |
+| Ensemble, fine-tuned tiles | 0.2930 | 0.2075 | 0.2641 | 0.4776 | 0.3009 |
+| Ensemble, fine-tuned tiles + temporal rescoring | 0.2971 | 0.1918 | 0.2634 | 0.4938 | 0.3063 |
+
+Every pipeline step raised validation mAP, and the ensemble gave the largest gain (+0.026). We chose the two final submissions by validation mAP, before private scores were shown: TODO.
