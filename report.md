@@ -11,7 +11,7 @@ We work with drone video frames from the UCU AI 2026 competition. The dataset ha
 
 ## Data Understanding and Preprocessing
 
-We kept the original split by video sequence. This avoids leakage from almost identical frames in the same clip. There are 56 training clips and 7 validation clips, with no shared clip names. One high-resolution clip contains 34% of all validation frames.
+We kept the original split by video sequence. This avoids leakage from almost identical frames in the same clip. There are 56 training clips and 7 validation clips. One high-resolution clip contains 34% of all validation frames.
 
 | Split | Clips | Frames | Objects | Ignored regions |
 |---|---:|---:|---:|---:|
@@ -22,17 +22,17 @@ COCO boxes with `iscrowd = 0` were used as targets. Boxes with `iscrowd = 1` wer
 
 ![Class distribution](images/eda_class_distribution.png)
 
-The number of objects varied from 5 to 143 per frame, with a maximum close to 180. We therefore used `maxDets = 300` during evaluation. Ignored regions appeared in 72% of frames but covered only 2.3% of the image area on average. During training, we filled them with the mean colour. During evaluation, we kept them as ignored regions. Since 47% of objects were partly occluded, we also tested Soft-NMS.
+The number of objects varied from 5 to 143 per frame, with a maximum close to 180. So we used `maxDets = 300` during evaluation. Ignored regions appeared in 72% of frames but covered only 2.3% of the image area on average. During training, we filled them with the mean colour. During evaluation, we kept them as ignored regions. Since 47% of objects were partly occluded, we also tested Soft-NMS.
 
 ![Object size distribution](images/eda_object_sizes.png)
 
 ![Objects per frame](images/eda_objects_per_frame.png)
 
-With a 640-pixel long side, more than half of the objects became smaller than 16 pixels. We therefore used 1280 pixels, mild scale, colour and blur augmentation, and no augmentation for validation. K-means gave box sizes of about 7--100 pixels at input 1024. This led us to test smaller anchors, a stride-4 head and tiled inference. For the main experiments, we used every fifth frame. The temporal experiment used all validation frames.
+With a 640-pixel long side, more than half of the objects became smaller than 16 pixels what makes them hard to detect. We therefore used 1280 pixels, mild scale (augmentation by changing scale a bit), colour and blur augmentation, and no augmentation for validation. K-means gave box sizes of about 7--100 pixels at input 1024. This led us to test smaller anchors, a stride-4 head and tiled inference. For the main experiments, we used every fifth frame.
 
 ## Faster R-CNN
 
-**Protocol.** We used Faster R-CNN with a COCO-pretrained ResNet-50 FPN. We trained it for six epochs with batch size 4, SGD and a OneCycle learning-rate schedule. The input long side was 1280 pixels. We used smaller anchors from the dataset and allowed up to 300 boxes per image.
+**Protocol.** We used Faster R-CNN with a COCO-pretrained ResNet-50 FPN. We trained it for six epochs with batch size 4 (these numbers where mainly selected with a purpose to optimize learning time to be able to use google colab gpu session), SGD and a onecycle learning-rate schedule. The input long side was 1280 pixels. We used smaller anchors from the dataset and allowed up to 300 boxes per image.
 
 **Result.**
 
@@ -48,7 +48,7 @@ The RPN first finds possible object regions. The RoI head then classifies these 
 
 ## RetinaNet
 
-**Protocol.** RetinaNet used the same pretrained backbone, data split, six-epoch budget and COCO evaluation as Faster R-CNN. This gave us a fair comparison between the two anchor-based models.
+**Protocol.** RetinaNet used the same pretrained backbone, data split, six-epoch budget and COCO evaluation as Faster R-CNN. This gave us a comparison between the two anchor-based models.
 
 **Result.**
 
